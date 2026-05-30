@@ -40,6 +40,7 @@ import {
   __resetModelCatalogCacheForTests,
   getFavoriteModels,
   getModelSelectionLists,
+  searchModels,
 } from "../../src/model/manager.js";
 
 describe("model/manager", () => {
@@ -310,6 +311,28 @@ describe("model/manager", () => {
       expect(favorites).toContainEqual({ providerID: "opencode", modelID: "big-pickle" });
       // recent models should not be in favorites
       expect(favorites).not.toContainEqual({ providerID: "google", modelID: "gemini-pro" });
+    });
+  });
+
+  describe("searchModels", () => {
+    it("returns matching models by case-insensitive substring", async () => {
+      const results = await searchModels("GPT");
+
+      expect(results).toContainEqual({ providerID: "openai", modelID: "gpt-4o" });
+      expect(results).toContainEqual({ providerID: "openai", modelID: "gpt-3.5" });
+    });
+
+    it("matches provider names and sorts results alphabetically", async () => {
+      const results = await searchModels("openai");
+      const keys = results.map((model) => `${model.providerID}/${model.modelID}`);
+
+      expect(keys).toEqual([...keys].sort());
+      expect(keys).toContain("openai/gpt-3.5");
+      expect(keys).toContain("openai/gpt-4o");
+    });
+
+    it("returns empty list for blank query", async () => {
+      await expect(searchModels("   ")).resolves.toEqual([]);
     });
   });
 });

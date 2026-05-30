@@ -11,8 +11,10 @@ interface OpenCodeModelState {
 }
 
 const MODEL_CATALOG_CACHE_TTL_MS = 10 * 60 * 1000;
+const SEARCH_RESULTS_LIMIT = 10;
 
 let cachedValidModelKeys: Set<string> | null = null;
+let cachedAllModels: FavoriteModel[] | null = null;
 let modelCatalogCacheExpiresAt = 0;
 let modelCatalogFetchInFlight: Promise<Set<string> | null> | null = null;
 
@@ -85,14 +87,17 @@ async function getValidModelKeys(): Promise<Set<string> | null> {
       }
 
       const validModelKeys = new Set<string>();
+      const allModels: FavoriteModel[] = [];
 
       for (const provider of response.data.providers) {
         for (const modelID of Object.keys(provider.models)) {
           validModelKeys.add(getModelKey(provider.id, modelID));
+          allModels.push({ providerID: provider.id, modelID });
         }
       }
 
       cachedValidModelKeys = validModelKeys;
+      cachedAllModels = allModels;
       modelCatalogCacheExpiresAt = Date.now() + MODEL_CATALOG_CACHE_TTL_MS;
 
       logger.debug(
@@ -289,8 +294,35 @@ export async function reconcileStoredModelSelection(): Promise<void> {
 
 export function __resetModelCatalogCacheForTests(): void {
   cachedValidModelKeys = null;
+  cachedAllModels = null;
   modelCatalogCacheExpiresAt = 0;
   modelCatalogFetchInFlight = null;
+}
+
+export async function searchModels(query: string): Promise<FavoriteModel[]> {
+  const normalizedQuery = query.trim().toLowerCase();
+
+  if (!normalizedQuery) {
+    return [];
+  }
+
+  const validModelKeys = await getValidModelKeys();
+  if (!validModelKeys || !cachedAllModels) {
+    logger.warn("[ModelManager] Model catalog unavailable, skipping search");
+    return [];
+  }
+
+  const results = cachedAllModels
+    .filter((model) => getModelKey(model.providerID, model.modelID).toLowerCase().includes(normalizedQuery))
+    .sort((left, right) =>
+      getModelKey(left.providerID, left.modelID)
+        .toLowerCase()
+        .localeCompare(getModelKey(right.providerID, right.modelID).toLowerCase()),
+    )
+    .slice(0, SEARCH_RESULTS_LIMIT);
+
+  logger.debug(`[ModelManager] Model search: query="${query}", results=${results.length}`);
+  return results;
 }
 
 /**

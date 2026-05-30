@@ -101,6 +101,7 @@ Current command set:
 - [x] `/new` - create a new session
 - [x] `/abort` - stop the current task
 - [x] `/sessions` - show and switch recent sessions
+- [x] `/messages` - browse user messages, revert, or fork from a point
 - [x] `/projects` - show and switch projects
 - [x] `/open` - add and select a project by browsing allowed directories
 - [x] `/rename` - rename current session
@@ -135,6 +136,7 @@ Model picker behavior:
 - [x] OpenCode server control and health checks via bot commands
 - [x] Project management (list/switch) with inline menus
 - [x] Session management (list/switch/create) with inline menus
+- [x] Session message browsing with revert/fork actions, adapted for topic-aware flows
 - [x] Group-threaded workflow with General control topic plus per-session forum topics
 - [x] Prompt execution through OpenCode with SSE-based event handling
 - [x] Live assistant response streaming with thread-aware Telegram edits and fallback completion delivery
