@@ -14,6 +14,21 @@ describe("bot/utils/assistant-run-footer", () => {
       3500,
     );
 
-    expect(footer).toBe("🛠️ Build · 🤖 openai/gpt-5 · 🕒 2.5s");
+    expect(footer).toBe("🛠️ Build · 🤖 openai/gpt-5 · 🕒 2s");
+  });
+
+  it("formats longer durations with minutes and hours", () => {
+    const footer = formatAssistantRunFooter(
+      {
+        sessionId: "s1",
+        startedAt: 0,
+        configuredAgent: "build",
+        configuredProviderID: "openai",
+        configuredModelID: "gpt-5",
+      },
+      3_661_000,
+    );
+
+    expect(footer).toBe("🛠️ Build · 🤖 openai/gpt-5 · 🕒 1h 1m 1s");
   });
 });

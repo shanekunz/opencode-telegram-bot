@@ -8,6 +8,7 @@ import { BOT_COMMANDS, getLocalizedDmBotCommands } from "./commands/definitions.
 import { startCommand } from "./commands/start.js";
 import { helpCommand } from "./commands/help.js";
 import { lastCommand } from "./commands/last.js";
+import { handleMessagesCallback, messagesCommand } from "./commands/messages.js";
 import { statusCommand } from "./commands/status.js";
 import {
   AGENT_MODE_BUTTON_TEXT_PATTERN,
@@ -42,7 +43,13 @@ import {
 } from "./handlers/question.js";
 import { handlePermissionCallback, showPermissionRequest } from "./handlers/permission.js";
 import { handleAgentSelect, showAgentSelectionMenu } from "./handlers/agent.js";
-import { handleModelSelect, showModelSelectionMenu } from "./handlers/model.js";
+import {
+  handleModelSearchCallback,
+  handleModelSearchResults,
+  handleModelSearchTextInput,
+  handleModelSelect,
+  showModelSelectionMenu,
+} from "./handlers/model.js";
 import { handleVariantSelect, showVariantSelectionMenu } from "./handlers/variant.js";
 import { handleContextButtonPress, handleCompactConfirm } from "./handlers/context.js";
 import { handleInlineMenuCancel } from "./handlers/inline-menu.js";
@@ -1325,6 +1332,7 @@ export function createBot(): Bot<Context> {
   bot.command(BOT_COMMAND.TASK, taskCommand);
   bot.command(BOT_COMMAND.TASKLIST, taskListCommand);
   bot.command(BOT_COMMAND.SESSIONS, sessionsCommand);
+  bot.command(BOT_COMMAND.MESSAGES, messagesCommand);
   bot.command(BOT_COMMAND.NEW, createNewCommand({ ensureEventSubscription }));
   bot.command(BOT_COMMAND.ABORT, abortCommand);
   bot.command(BOT_COMMAND.RENAME, renameCommand);
@@ -1351,11 +1359,14 @@ export function createBot(): Bot<Context> {
       const handledQuestion = await handleQuestionCallback(ctx);
       const handledPermission = await handlePermissionCallback(ctx);
       const handledAgent = await handleAgentSelect(ctx);
+      const handledModelSearch = await handleModelSearchCallback(ctx);
+      const handledModelSearchResults = await handleModelSearchResults(ctx);
       const handledModel = await handleModelSelect(ctx);
       const handledVariant = await handleVariantSelect(ctx);
       const handledCompactConfirm = await handleCompactConfirm(ctx);
       const handledRenameCancel = await handleRenameCancel(ctx);
       const handledCommands = await handleCommandsCallback(ctx, { ensureEventSubscription });
+      const handledMessages = await handleMessagesCallback(ctx, { ensureEventSubscription });
       const handledSkills = await handleSkillsCallback(ctx, {
         bot,
         ensureEventSubscription,
@@ -1363,7 +1374,7 @@ export function createBot(): Bot<Context> {
       });
 
       logger.debug(
-        `[Bot] Callback handled: inlineCancel=${handledInlineCancel}, session=${handledSession}, project=${handledProject}, open=${handledOpen}, taskList=${handledTaskList}, question=${handledQuestion}, permission=${handledPermission}, agent=${handledAgent}, model=${handledModel}, variant=${handledVariant}, compactConfirm=${handledCompactConfirm}, rename=${handledRenameCancel}, commands=${handledCommands}, skills=${handledSkills}`,
+        `[Bot] Callback handled: inlineCancel=${handledInlineCancel}, session=${handledSession}, project=${handledProject}, open=${handledOpen}, taskList=${handledTaskList}, question=${handledQuestion}, permission=${handledPermission}, agent=${handledAgent}, modelSearch=${handledModelSearch}, modelSearchResults=${handledModelSearchResults}, model=${handledModel}, variant=${handledVariant}, compactConfirm=${handledCompactConfirm}, rename=${handledRenameCancel}, commands=${handledCommands}, messages=${handledMessages}, skills=${handledSkills}`,
       );
 
       if (
@@ -1375,11 +1386,14 @@ export function createBot(): Bot<Context> {
         !handledQuestion &&
         !handledPermission &&
         !handledAgent &&
+        !handledModelSearch &&
+        !handledModelSearchResults &&
         !handledModel &&
         !handledVariant &&
         !handledCompactConfirm &&
         !handledRenameCancel &&
         !handledCommands &&
+        !handledMessages &&
         !handledSkills
       ) {
         logger.debug("Unknown callback query:", ctx.callbackQuery?.data);
@@ -1668,6 +1682,11 @@ export function createBot(): Bot<Context> {
 
     const handledTask = await handleTaskTextAnswer(ctx);
     if (handledTask) {
+      return;
+    }
+
+    const handledModelSearchText = await handleModelSearchTextInput(ctx);
+    if (handledModelSearchText) {
       return;
     }
 
